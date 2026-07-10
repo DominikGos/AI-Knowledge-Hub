@@ -1,10 +1,10 @@
-package com.knowledgevault.storage_service;
+package com.knowledgevault.storage;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class StorageServiceApplicationTests {
+class StorageApplicationTests {
 
 	@Test
 	void contextLoads() {

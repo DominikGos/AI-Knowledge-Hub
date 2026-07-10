@@ -1,13 +1,13 @@
-package com.knowledgevault.storage_service;
+package com.knowledgevault.storage;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class StorageServiceApplication {
+public class StorageApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(StorageServiceApplication.class, args);
+		SpringApplication.run(StorageApplication.class, args);
 	}
 
 }
