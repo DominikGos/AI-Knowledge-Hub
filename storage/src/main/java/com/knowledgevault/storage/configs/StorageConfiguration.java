@@ -3,12 +3,15 @@ package com.knowledgevault.storage.configs;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
+import java.util.List;
 
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "storage")
 public class StorageConfiguration {
 
-    private int maxSize;
+    private String location;
+
+    private List<String> allowedContentTypes;
 }
