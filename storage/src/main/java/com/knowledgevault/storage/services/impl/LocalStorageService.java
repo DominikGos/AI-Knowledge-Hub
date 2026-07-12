@@ -5,18 +5,19 @@ import com.knowledgevault.storage.dto.UploadedFileResponse;
 import com.knowledgevault.storage.exceptions.StorageException;
 import com.knowledgevault.storage.services.StorageService;
 import com.knowledgevault.storage.validation.FileValidator;
+import com.knowledgevault.storage.validation.FileValidator.ValidatedFile;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 @Profile("local")
@@ -43,9 +44,9 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public UploadedFileResponse store(MultipartFile file) {
-        fileValidator.validate(file);
+        ValidatedFile validatedFile = fileValidator.validate(file);
 
-        return storeValidatedFile(file);
+        return storeValidatedFile(file, validatedFile).response();
     }
 
     @Override
@@ -58,43 +59,107 @@ public class LocalStorageService implements StorageService {
          * Validate all files before saving any of them.
          * This prevents partial uploads caused by validation errors.
          */
-        files.forEach(fileValidator::validate);
-
-        return files.stream()
-                .map(this::storeValidatedFile)
+        List<ValidatedFile> validatedFiles = files.stream()
+                .map(fileValidator::validate)
                 .toList();
+
+        List<StoredFile> storedFiles = new ArrayList<>();
+
+        try {
+            for (int index = 0; index < files.size(); index++) {
+                storedFiles.add(storeValidatedFile(
+                        files.get(index),
+                        validatedFiles.get(index)
+                ));
+            }
+
+            return storedFiles.stream()
+                    .map(StoredFile::response)
+                    .toList();
+        } catch (RuntimeException exception) {
+            rollback(storedFiles, exception);
+            throw exception;
+        }
     }
 
-    private UploadedFileResponse storeValidatedFile(
-            MultipartFile file
+    private StoredFile storeValidatedFile(
+            MultipartFile file,
+            ValidatedFile validatedFile
     ) {
-        String extension = extractExtension(
-                file.getOriginalFilename()
-        );
-
-        String storageKey = UUID.randomUUID() + extension;
+        String storageKey = UUID.randomUUID()
+                + validatedFile.extension();
         Path targetLocation = resolveStoragePath(storageKey);
+        Path temporaryFile = null;
 
         try (InputStream inputStream = file.getInputStream()) {
+            temporaryFile = Files.createTempFile(
+                    rootLocation,
+                    ".upload-",
+                    ".tmp"
+            );
             Files.copy(
                     inputStream,
-                    targetLocation,
+                    temporaryFile,
                     StandardCopyOption.REPLACE_EXISTING
             );
+            moveToFinalLocation(temporaryFile, targetLocation);
 
-            return UploadedFileResponse.builder()
-                    .originalFilename(file.getOriginalFilename())
-                    .storageKey(storageKey)
-                    .contentType(file.getContentType())
-                    .size(file.getSize())
-                    .build();
+            return new StoredFile(
+                    targetLocation,
+                    UploadedFileResponse.builder()
+                            .originalFilename(file.getOriginalFilename())
+                            .storageKey(storageKey)
+                            .contentType(validatedFile.contentType())
+                            .size(file.getSize())
+                            .build()
+            );
 
         } catch (IOException exception) {
+            deleteTemporaryFile(temporaryFile, exception);
             throw new StorageException(
                     "Could not store file: "
                             + file.getOriginalFilename(),
                     exception
             );
+        }
+    }
+
+    private void moveToFinalLocation(
+            Path source,
+            Path target
+    ) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException exception) {
+            Files.move(source, target);
+        }
+    }
+
+    private void rollback(
+            List<StoredFile> storedFiles,
+            RuntimeException originalException
+    ) {
+        for (StoredFile storedFile : storedFiles) {
+            try {
+                Files.deleteIfExists(storedFile.path());
+            } catch (IOException rollbackException) {
+                originalException.addSuppressed(rollbackException);
+            }
+        }
+    }
+
+    private void deleteTemporaryFile(
+            Path temporaryFile,
+            IOException originalException
+    ) {
+        if (temporaryFile == null) {
+            return;
+        }
+
+        try {
+            Files.deleteIfExists(temporaryFile);
+        } catch (IOException cleanupException) {
+            originalException.addSuppressed(cleanupException);
         }
     }
 
@@ -142,27 +207,9 @@ public class LocalStorageService implements StorageService {
         }
     }
 
-    private String extractExtension(
-            String originalFilename
+    private record StoredFile(
+            Path path,
+            UploadedFileResponse response
     ) {
-        String cleanFilename =
-                StringUtils.cleanPath(originalFilename);
-
-        int extensionIndex =
-                cleanFilename.lastIndexOf('.');
-
-        if (extensionIndex < 0
-                || extensionIndex
-                == cleanFilename.length() - 1) {
-            return "";
-        }
-
-        String extension = cleanFilename
-                .substring(extensionIndex)
-                .toLowerCase(Locale.ROOT);
-
-        return extension.length() <= 20
-                ? extension
-                : "";
     }
 }

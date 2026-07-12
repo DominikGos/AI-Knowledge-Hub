@@ -3,6 +3,8 @@ package com.knowledgevault.storage.validation;
 import com.knowledgevault.storage.configs.StorageConfiguration;
 import com.knowledgevault.storage.exceptions.StorageException;
 import org.apache.tika.Tika;
+import org.apache.tika.mime.MimeTypeException;
+import org.apache.tika.mime.MimeTypes;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,7 +22,7 @@ public class FileValidator {
         this.configuration = configuration;
     }
 
-    public void validate(MultipartFile file) {
+    public ValidatedFile validate(MultipartFile file) {
         validateBasicProperties(file);
 
         String detectedContentType = detectContentType(file);
@@ -31,6 +33,11 @@ public class FileValidator {
                     "Unsupported file type: " + detectedContentType
             );
         }
+
+        return new ValidatedFile(
+                detectedContentType,
+                extensionFor(detectedContentType)
+        );
     }
 
     private void validateBasicProperties(MultipartFile file) {
@@ -67,5 +74,25 @@ public class FileValidator {
                     exception
             );
         }
+    }
+
+    private String extensionFor(String contentType) {
+        try {
+            return MimeTypes.getDefaultMimeTypes()
+                    .forName(contentType)
+                    .getExtension();
+        } catch (MimeTypeException exception) {
+            throw new StorageException(
+                    "Could not determine extension for file type: "
+                            + contentType,
+                    exception
+            );
+        }
+    }
+
+    public record ValidatedFile(
+            String contentType,
+            String extension
+    ) {
     }
 }
