@@ -14,4 +14,6 @@ public class StorageConfiguration {
     private String location;
 
     private List<String> allowedContentTypes;
+
+    private int maxFilesPerRequest;
 }
