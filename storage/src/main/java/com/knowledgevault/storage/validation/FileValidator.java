@@ -2,19 +2,38 @@ package com.knowledgevault.storage.validation;
 
 import com.knowledgevault.storage.configs.StorageConfiguration;
 import com.knowledgevault.storage.exceptions.StorageException;
+import org.apache.tika.Tika;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 @Component
 public class FileValidator {
 
     private final StorageConfiguration configuration;
+    private final Tika tika = new Tika();
 
     public FileValidator(StorageConfiguration configuration) {
         this.configuration = configuration;
     }
 
     public void validate(MultipartFile file) {
+        validateBasicProperties(file);
+
+        String detectedContentType = detectContentType(file);
+
+        if (!configuration.getAllowedContentTypes()
+                .contains(detectedContentType)) {
+            throw new StorageException(
+                    "Unsupported file type: " + detectedContentType
+            );
+        }
+    }
+
+    private void validateBasicProperties(MultipartFile file) {
         if (file == null) {
             throw new StorageException("File is required");
         }
@@ -29,15 +48,23 @@ public class FileValidator {
             throw new StorageException("File name is missing");
         }
 
-        String contentType = file.getContentType();
+        String cleanFilename = StringUtils.cleanPath(originalFilename);
 
-        if (contentType == null || contentType.isBlank()) {
-            throw new StorageException("File content type is missing");
+        if (cleanFilename.contains("..")) {
+            throw new StorageException("Invalid file name");
         }
+    }
 
-        if (!configuration.getAllowedContentTypes().contains(contentType)) {
+    private String detectContentType(MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            return tika.detect(
+                    inputStream,
+                    file.getOriginalFilename()
+            );
+        } catch (IOException exception) {
             throw new StorageException(
-                    "Unsupported content type: " + contentType
+                    "Could not inspect uploaded file",
+                    exception
             );
         }
     }
