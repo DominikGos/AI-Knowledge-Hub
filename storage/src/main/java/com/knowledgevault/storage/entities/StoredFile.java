@@ -16,6 +16,7 @@ import java.util.UUID;
 public class StoredFile {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "original_filename", nullable = false, length = 500)
@@ -27,7 +28,7 @@ public class StoredFile {
     @Column(name = "content_type", nullable = false, length = 255)
     private String contentType;
 
-    @Column(nullable = false)
+    @Column(name = "size", nullable = false)
     private long size;
 
     @Enumerated(EnumType.STRING)
