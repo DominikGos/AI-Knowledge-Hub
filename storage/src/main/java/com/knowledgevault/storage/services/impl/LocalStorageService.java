@@ -2,7 +2,10 @@ package com.knowledgevault.storage.services.impl;
 
 import com.knowledgevault.storage.configs.StorageConfiguration;
 import com.knowledgevault.storage.dto.UploadedFileResponse;
+import com.knowledgevault.storage.entities.ProcessingStatus;
+import com.knowledgevault.storage.entities.StoredFile;
 import com.knowledgevault.storage.exceptions.StorageException;
+import com.knowledgevault.storage.repositories.FileRepository;
 import com.knowledgevault.storage.services.StorageService;
 import com.knowledgevault.storage.validation.FileValidator;
 import org.springframework.context.annotation.Profile;
@@ -15,6 +18,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -26,11 +30,12 @@ public class LocalStorageService implements StorageService {
     private final Path rootLocation;
     private final FileValidator fileValidator;
     private final StorageConfiguration configuration;
+    private final FileRepository fileRepository;
 
     public LocalStorageService(
             StorageConfiguration configuration,
-            FileValidator fileValidator
-    ) {
+            FileValidator fileValidator,
+            FileRepository fileRepository) {
         this.configuration = configuration;
         this.fileValidator = fileValidator;
 
@@ -39,6 +44,7 @@ public class LocalStorageService implements StorageService {
                 .normalize();
 
         initializeStorageDirectory();
+        this.fileRepository = fileRepository;
     }
 
     @Override
@@ -60,10 +66,7 @@ public class LocalStorageService implements StorageService {
     }
 
     private UploadedFileResponse storeValidatedFile(MultipartFile file) {
-        String extension = extractExtension(
-                file.getOriginalFilename()
-        );
-
+        String extension = extractExtension(file.getOriginalFilename());
         String storageKey = UUID.randomUUID() + extension;
         Path targetLocation = resolveStoragePath(storageKey);
 
@@ -74,20 +77,35 @@ public class LocalStorageService implements StorageService {
                     StandardCopyOption.REPLACE_EXISTING
             );
 
-            return UploadedFileResponse.builder()
+            UploadedFileResponse fileResponse = UploadedFileResponse.builder()
+                    .processingStatus(ProcessingStatus.PENDING)
                     .originalFilename(file.getOriginalFilename())
                     .storageKey(storageKey)
                     .contentType(file.getContentType())
                     .size(file.getSize())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
 
+            StoredFile fileEntity = StoredFile.builder()
+                    .processingStatus(fileResponse.getProcessingStatus())
+                    .originalFilename(fileResponse.getOriginalFilename())
+                    .storageKey(fileResponse.getStorageKey())
+                    .contentType(fileResponse.getContentType())
+                    .size(fileResponse.getSize())
+                    .createdAt(fileResponse.getCreatedAt())
+                    .updatedAt(fileResponse.getUpdatedAt())
+                    .build();
+
+            fileRepository.save(fileEntity);
+
+            return fileResponse;
         } catch (IOException exception) {
             throw new StorageException(
-                    "Could not store file: "
-                            + file.getOriginalFilename(),
+                    "Could not store file: " + file.getOriginalFilename(),
                     exception
             );
-        }
+        } 
     }
 
     private void validateFileCollection(List<MultipartFile> files) {
