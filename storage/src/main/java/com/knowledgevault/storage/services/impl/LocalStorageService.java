@@ -5,6 +5,7 @@ import com.knowledgevault.storage.dto.UploadedFileResponse;
 import com.knowledgevault.storage.entities.ProcessingStatus;
 import com.knowledgevault.storage.entities.StoredFile;
 import com.knowledgevault.storage.exceptions.StorageException;
+import com.knowledgevault.storage.mappers.FileMapper;
 import com.knowledgevault.storage.repositories.FileRepository;
 import com.knowledgevault.storage.services.StorageService;
 import com.knowledgevault.storage.validation.FileValidator;
@@ -31,20 +32,24 @@ public class LocalStorageService implements StorageService {
     private final FileValidator fileValidator;
     private final StorageConfiguration configuration;
     private final FileRepository fileRepository;
+    private final FileMapper fileMapper;
 
     public LocalStorageService(
             StorageConfiguration configuration,
             FileValidator fileValidator,
-            FileRepository fileRepository) {
+            FileRepository fileRepository,
+            FileMapper fileMapper
+    ) {
         this.configuration = configuration;
         this.fileValidator = fileValidator;
+        this.fileRepository = fileRepository;
+        this.fileMapper = fileMapper;
 
         this.rootLocation = Path.of(configuration.getLocation())
                 .toAbsolutePath()
                 .normalize();
 
         initializeStorageDirectory();
-        this.fileRepository = fileRepository;
     }
 
     @Override
@@ -105,7 +110,7 @@ public class LocalStorageService implements StorageService {
                     "Could not store file: " + file.getOriginalFilename(),
                     exception
             );
-        } 
+        }
     }
 
     private void validateFileCollection(List<MultipartFile> files) {
