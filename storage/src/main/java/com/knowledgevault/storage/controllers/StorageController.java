@@ -1,6 +1,7 @@
 package com.knowledgevault.storage.controllers;
 
 import com.knowledgevault.storage.dto.UploadedFileResponse;
+import com.knowledgevault.storage.mappers.FileMapper;
 import com.knowledgevault.storage.services.StorageService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,16 +14,25 @@ import java.util.List;
 @RestController
 @RequestMapping("/storage")
 public class StorageController {
-    private StorageService storageService;
+    private final StorageService storageService;
+    private final FileMapper fileMapper;
 
-    public StorageController(StorageService storageService) {
+    public StorageController(
+        StorageService storageService,
+        FileMapper fileMapper
+    ) {
         this.storageService = storageService;
+        this.fileMapper = fileMapper;
     }
 
     @PostMapping("/upload")
     public List<UploadedFileResponse> upload(
             @RequestParam("files") List<MultipartFile> files
     ) {
-        return storageService.storeAll(files);
+        return storageService
+                .storeAll(files)
+                .stream()
+                .map(fileMapper::toDto)
+                .toList();
     }
 }

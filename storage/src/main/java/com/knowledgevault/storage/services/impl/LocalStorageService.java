@@ -1,11 +1,9 @@
 package com.knowledgevault.storage.services.impl;
 
 import com.knowledgevault.storage.configs.StorageConfiguration;
-import com.knowledgevault.storage.dto.UploadedFileResponse;
 import com.knowledgevault.storage.entities.ProcessingStatus;
 import com.knowledgevault.storage.entities.StoredFile;
 import com.knowledgevault.storage.exceptions.StorageException;
-import com.knowledgevault.storage.mappers.FileMapper;
 import com.knowledgevault.storage.repositories.FileRepository;
 import com.knowledgevault.storage.services.StorageService;
 import com.knowledgevault.storage.validation.FileValidator;
@@ -32,18 +30,15 @@ public class LocalStorageService implements StorageService {
     private final FileValidator fileValidator;
     private final StorageConfiguration configuration;
     private final FileRepository fileRepository;
-    private final FileMapper fileMapper;
 
     public LocalStorageService(
             StorageConfiguration configuration,
             FileValidator fileValidator,
-            FileRepository fileRepository,
-            FileMapper fileMapper
+            FileRepository fileRepository
     ) {
         this.configuration = configuration;
         this.fileValidator = fileValidator;
         this.fileRepository = fileRepository;
-        this.fileMapper = fileMapper;
 
         this.rootLocation = Path.of(configuration.getLocation())
                 .toAbsolutePath()
@@ -53,14 +48,14 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
-    public UploadedFileResponse store(MultipartFile file) {
+    public StoredFile store(MultipartFile file) {
         fileValidator.validate(file);
 
         return storeValidatedFile(file);
     }
 
     @Override
-    public List<UploadedFileResponse> storeAll(List<MultipartFile> files) {
+    public List<StoredFile> storeAll(List<MultipartFile> files) {
         validateFileCollection(files);
 
         files.forEach(fileValidator::validate);
@@ -70,10 +65,11 @@ public class LocalStorageService implements StorageService {
                 .toList();
     }
 
-    private UploadedFileResponse storeValidatedFile(MultipartFile file) {
+    private StoredFile storeValidatedFile(MultipartFile file) {
         String extension = extractExtension(file.getOriginalFilename());
         String storageKey = UUID.randomUUID() + extension;
         Path targetLocation = resolveStoragePath(storageKey);
+        StoredFile fileEntity;
 
         try (InputStream inputStream = file.getInputStream()) {
             Files.copy(
@@ -82,7 +78,7 @@ public class LocalStorageService implements StorageService {
                     StandardCopyOption.REPLACE_EXISTING
             );
 
-            UploadedFileResponse fileDto = UploadedFileResponse.builder()
+             fileEntity = StoredFile.builder()
                     .processingStatus(ProcessingStatus.PENDING)
                     .originalFilename(file.getOriginalFilename())
                     .storageKey(storageKey)
@@ -92,11 +88,9 @@ public class LocalStorageService implements StorageService {
                     .updatedAt(Instant.now())
                     .build();
 
-            StoredFile fileEntity = fileMapper.toEntity(fileDto);
-
             fileRepository.save(fileEntity);
 
-            return fileDto;
+            return fileEntity;
         } catch (IOException exception) {
             throw new StorageException(
                     "Could not store file: " + file.getOriginalFilename(),
@@ -169,190 +163,3 @@ public class LocalStorageService implements StorageService {
                 : "";
     }
 }
-
-//
-//package com.knowledgevault.storage.services.impl;
-//
-//import com.knowledgevault.storage.configs.StorageConfiguration;
-//import com.knowledgevault.storage.dto.UploadedFileResponse;
-//import com.knowledgevault.storage.entities.ProcessingStatus;
-//import com.knowledgevault.storage.entities.StoredFile;
-//import com.knowledgevault.storage.exceptions.StorageException;
-//import com.knowledgevault.storage.repositories.FileRepository;
-//import com.knowledgevault.storage.services.StorageService;
-//import com.knowledgevault.storage.validation.FileValidator;
-//import com.knowledgevault.storage.validation.FileValidator.ValidatedFile;
-//import org.springframework.context.annotation.Profile;
-//import org.springframework.stereotype.Service;
-//import org.springframework.web.multipart.MultipartFile;
-//
-//import java.io.IOException;
-//import java.io.InputStream;
-//import java.nio.file.Files;
-//import java.nio.file.AtomicMoveNotSupportedException;
-//import java.nio.file.Path;
-//import java.nio.file.StandardCopyOption;
-//import java.time.Instant;
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.UUID;
-//
-//@Profile("local")
-//@Service
-//public class LocalStorageService implements StorageService {
-//
-//    private final Path rootLocation;
-//    private final FileValidator fileValidator;
-//    private final StorageConfiguration configuration;
-//    private final FileRepository fileRepository;
-//
-//    public LocalStorageService(
-//            StorageConfiguration configuration,
-//            FileValidator fileValidator,
-//            FileRepository fileRepository
-//    ) {
-//        this.configuration = configuration;
-//        this.fileValidator = fileValidator;
-//        this.fileRepository = fileRepository;
-//
-//        this.rootLocation = Path.of(configuration.getLocation())
-//                .toAbsolutePath()
-//                .normalize();
-//
-//        initializeStorageDirectory();
-//    }
-//
-//    @Override
-//    public UploadedFileResponse store(MultipartFile file) {
-//        ValidatedFile validatedFile = fileValidator.validate(file);
-//
-//        return storeValidatedFile(file, validatedFile).response();
-//    }
-//
-//    @Override
-//    public List<UploadedFileResponse> storeAll(
-//            List<MultipartFile> files
-//    ) {
-//        validateFileCollection(files);
-//
-//        /*
-//         * Validate all files before saving any of them.
-//         * This prevents partial uploads caused by validation errors.
-//         */
-//        files.forEach(fileValidator::validate);
-//
-//        List<StoredFile> storedFiles = new ArrayList<>();
-//        List<com.knowledgevault.storage.entities.StoredFile> entityFiles = new ArrayList<>();
-//
-//        try {
-//            for (int index = 0; index < files.size(); index++) {
-//                final MultipartFile currentFile = files.get(index);
-//
-//                storedFiles.add(storeValidatedFile(
-//                        currentFile,
-//                        validatedFiles.get(index)
-//                ));
-//
-//                entityFiles.add(com.knowledgevault.storage.entities.StoredFile
-//                        .builder()
-//                        .contentType(currentFile.getContentType())
-//                        .originalFilename(currentFile.getOriginalFilename())
-//                        .storageKey("test")
-//                        .size(currentFile.getSize())
-//                        .processingStatus(ProcessingStatus.PROCESSING)
-//                        .createdAt(Instant.now())
-//                        .updatedAt(Instant.now())
-//                        .build()
-//                );
-//            }
-//
-//            fileRepository.saveAll(entityFiles);
-//
-//            return storedFiles.stream()
-//                    .map(StoredFile::response)
-//                    .toList();
-//        } catch (RuntimeException exception) {
-//            rollback(storedFiles, exception);
-//            throw exception;
-//        }
-//    }
-//
-//
-//    private UploadedFileResponse storeValidatedFile(
-//            MultipartFile file
-//    ) {
-//        String extension = extractExtension(
-//                file.getOriginalFilename()
-//        );
-//
-//        String storageKey = UUID.randomUUID() + extension;
-//        Path targetLocation = resolveStoragePath(storageKey);
-//
-//        try (InputStream inputStream = file.getInputStream()) {
-//            Files.copy(
-//                    inputStream,
-//                    targetLocation,
-//                    StandardCopyOption.REPLACE_EXISTING
-//            );
-//
-//            return UploadedFileResponse.builder()
-//                    .originalFilename(file.getOriginalFilename())
-//                    .storageKey(storageKey)
-//                    .contentType(file.getContentType())
-//                    .size(file.getSize())
-//                    .build();
-//
-//        } catch (IOException exception) {
-//            throw new StorageException(
-//                    "Could not store file: "
-//                            + file.getOriginalFilename(),
-//                    exception
-//            );
-//        }
-//    }
-//
-//
-//    private void validateFileCollection(
-//            List<MultipartFile> files
-//    ) {
-//        if (files == null || files.isEmpty()) {
-//            throw new StorageException(
-//                    "At least one file must be provided"
-//            );
-//        }
-//
-//        if (files.size()
-//                > configuration.getMaxFilesPerRequest()) {
-//            throw new StorageException(
-//                    "Too many files. Maximum allowed: "
-//                            + configuration.getMaxFilesPerRequest()
-//            );
-//        }
-//    }
-//
-//    private Path resolveStoragePath(String storageKey) {
-//        Path targetLocation = rootLocation
-//                .resolve(storageKey)
-//                .normalize();
-//
-//        if (!targetLocation.startsWith(rootLocation)) {
-//            throw new StorageException(
-//                    "Invalid storage path"
-//            );
-//        }
-//
-//        return targetLocation;
-//    }
-//
-//    private void initializeStorageDirectory() {
-//        try {
-//            Files.createDirectories(rootLocation);
-//        } catch (IOException exception) {
-//            throw new StorageException(
-//                    "Could not create storage directory: "
-//                            + rootLocation,
-//                    exception
-//            );
-//        }
-//    }
-//}
