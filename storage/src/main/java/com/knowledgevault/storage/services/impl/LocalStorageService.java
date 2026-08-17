@@ -60,9 +60,11 @@ public class LocalStorageService implements StorageService {
 
         files.forEach(fileValidator::validate);
 
-        return files.stream()
+         List<StoredFile> validatedFiles = files.stream()
                 .map(this::storeValidatedFile)
                 .toList();
+
+         return fileRepository.saveAll(validatedFiles);
     }
 
     private StoredFile storeValidatedFile(MultipartFile file) {
@@ -87,8 +89,6 @@ public class LocalStorageService implements StorageService {
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
-
-            fileRepository.save(fileEntity);
 
             return fileEntity;
         } catch (IOException exception) {
