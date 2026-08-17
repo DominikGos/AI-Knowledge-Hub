@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface FileMapper {
-    UploadedFileResponse toEntity(StoredFile entity);
+    StoredFile toEntity(UploadedFileResponse dto);
 
-    StoredFile toDto(UploadedFileResponse dto);
+    UploadedFileResponse toDto(StoredFile entity);
 }

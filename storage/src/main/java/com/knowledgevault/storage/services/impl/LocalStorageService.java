@@ -82,7 +82,7 @@ public class LocalStorageService implements StorageService {
                     StandardCopyOption.REPLACE_EXISTING
             );
 
-            UploadedFileResponse fileResponse = UploadedFileResponse.builder()
+            UploadedFileResponse fileDto = UploadedFileResponse.builder()
                     .processingStatus(ProcessingStatus.PENDING)
                     .originalFilename(file.getOriginalFilename())
                     .storageKey(storageKey)
@@ -92,19 +92,11 @@ public class LocalStorageService implements StorageService {
                     .updatedAt(Instant.now())
                     .build();
 
-            StoredFile fileEntity = StoredFile.builder()
-                    .processingStatus(fileResponse.getProcessingStatus())
-                    .originalFilename(fileResponse.getOriginalFilename())
-                    .storageKey(fileResponse.getStorageKey())
-                    .contentType(fileResponse.getContentType())
-                    .size(fileResponse.getSize())
-                    .createdAt(fileResponse.getCreatedAt())
-                    .updatedAt(fileResponse.getUpdatedAt())
-                    .build();
+            StoredFile fileEntity = fileMapper.toEntity(fileDto);
 
             fileRepository.save(fileEntity);
 
-            return fileResponse;
+            return fileDto;
         } catch (IOException exception) {
             throw new StorageException(
                     "Could not store file: " + file.getOriginalFilename(),
