@@ -1,15 +1,15 @@
 package com.knowledgevault.storage.controllers;
 
+import com.knowledgevault.storage.dto.DeletedFileResponse;
 import com.knowledgevault.storage.dto.UploadedFileResponse;
+import com.knowledgevault.storage.entities.StoredFile;
 import com.knowledgevault.storage.mappers.FileMapper;
 import com.knowledgevault.storage.services.StorageService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/storage")
@@ -32,7 +32,14 @@ public class StorageController {
         return storageService
                 .storeAll(files)
                 .stream()
-                .map(fileMapper::toDto)
+                .map(fileMapper::toUploadedFileResponse)
                 .toList();
+    }
+
+    @DeleteMapping("/delete/{storageKey}")
+    public DeletedFileResponse delete(
+            @PathVariable String storageKey
+    ) {
+        return fileMapper.toDeletedFileResponse(storageService.delete(storageKey));
     }
 }

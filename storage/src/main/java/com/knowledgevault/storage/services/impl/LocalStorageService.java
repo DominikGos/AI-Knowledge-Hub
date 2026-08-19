@@ -16,10 +16,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 @Profile("local")
@@ -30,15 +32,17 @@ public class LocalStorageService implements StorageService {
     private final FileValidator fileValidator;
     private final StorageConfiguration configuration;
     private final FileRepository fileRepository;
+    private final StorageConfiguration storageConfiguration;
 
     public LocalStorageService(
             StorageConfiguration configuration,
             FileValidator fileValidator,
-            FileRepository fileRepository
-    ) {
+            FileRepository fileRepository,
+            StorageConfiguration storageConfiguration) {
         this.configuration = configuration;
         this.fileValidator = fileValidator;
         this.fileRepository = fileRepository;
+        this.storageConfiguration = storageConfiguration;
 
         this.rootLocation = Path.of(configuration.getLocation())
                 .toAbsolutePath()
@@ -65,6 +69,24 @@ public class LocalStorageService implements StorageService {
                 .toList();
 
          return fileRepository.saveAll(validatedFiles);
+    }
+
+    @Override
+    public StoredFile delete(String storageKey) {
+        StoredFile fileEntity = fileRepository
+                .findByStorageKey(storageKey).orElseThrow(() -> new NullPointerException("File not found"));
+
+        Path path = resolveStoragePath(storageKey);
+
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw new StorageException("Could not delete file: " + storageKey, e);
+        }
+
+        fileRepository.delete(fileEntity);
+
+        return fileEntity;
     }
 
     private StoredFile storeValidatedFile(MultipartFile file) {

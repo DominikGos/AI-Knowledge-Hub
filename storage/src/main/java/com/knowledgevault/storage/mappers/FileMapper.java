@@ -1,5 +1,6 @@
 package com.knowledgevault.storage.mappers;
 
+import com.knowledgevault.storage.dto.DeletedFileResponse;
 import com.knowledgevault.storage.dto.UploadedFileResponse;
 import com.knowledgevault.storage.entities.StoredFile;
 import org.mapstruct.Mapper;
@@ -8,5 +9,7 @@ import org.mapstruct.Mapper;
 public interface FileMapper {
     StoredFile toEntity(UploadedFileResponse dto);
 
-    UploadedFileResponse toDto(StoredFile entity);
+    UploadedFileResponse toUploadedFileResponse(StoredFile entity);
+
+    DeletedFileResponse toDeletedFileResponse(StoredFile entity);
 }
