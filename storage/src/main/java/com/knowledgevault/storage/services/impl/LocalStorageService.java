@@ -82,6 +82,17 @@ public class LocalStorageService implements StorageService {
         return fileEntity;
     }
 
+    @Override
+    public List<StoredFile> deleteAll(List<String> storageKeys) {
+        List<StoredFile> fileEntities = fileRepository.findAllByStorageKeyIn(storageKeys);
+
+        fileEntities.forEach(this::deletePhysicalFile);
+
+        fileRepository.deleteAll(fileEntities);
+        
+        return fileEntities;
+    }
+
     private StoredFile storeValidatedFile(MultipartFile file) {
         String extension = extractExtension(file.getOriginalFilename());
         String storageKey = UUID.randomUUID() + extension;

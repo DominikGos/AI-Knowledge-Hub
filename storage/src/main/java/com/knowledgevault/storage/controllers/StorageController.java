@@ -36,10 +36,13 @@ public class StorageController {
                 .toList();
     }
 
-    @DeleteMapping("/delete/{storageKey}")
-    public DeletedFileResponse delete(
-            @PathVariable String storageKey
+    @DeleteMapping("/delete")
+    public List<DeletedFileResponse> deleteAll(
+            @RequestBody List<String> storageKeys
     ) {
-        return fileMapper.toDeletedFileResponse(storageService.delete(storageKey));
+        return storageService.deleteAll(storageKeys)
+                .stream()
+                .map(fileMapper::toDeletedFileResponse)
+                .toList();
     }
 }
