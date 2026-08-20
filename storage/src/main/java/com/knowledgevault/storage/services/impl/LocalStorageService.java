@@ -74,15 +74,8 @@ public class LocalStorageService implements StorageService {
     @Override
     public StoredFile delete(String storageKey) {
         StoredFile fileEntity = fileRepository
-                .findByStorageKey(storageKey).orElseThrow(() -> new NullPointerException("File not found"));
-
-        Path path = resolveStoragePath(storageKey);
-
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException e) {
-            throw new StorageException("Could not delete file: " + storageKey, e);
-        }
+                .findByStorageKey(storageKey)
+                .orElseThrow(() -> new NullPointerException("File not found"));
 
         fileRepository.delete(fileEntity);
 
@@ -118,6 +111,16 @@ public class LocalStorageService implements StorageService {
                     "Could not store file: " + file.getOriginalFilename(),
                     exception
             );
+        }
+    }
+
+    private void deletePhysicalFile(StoredFile file) {
+        Path path = resolveStoragePath(file.getStorageKey());
+
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw new StorageException("Could not delete file: " + file.getStorageKey(), e);
         }
     }
 
