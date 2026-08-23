@@ -1,6 +1,7 @@
 package com.knowledgevault.storage.validation;
 
 import com.knowledgevault.storage.configs.StorageConfiguration;
+import com.knowledgevault.storage.exceptions.FileValidationException;
 import com.knowledgevault.storage.exceptions.StorageException;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MimeTypeException;
@@ -29,9 +30,7 @@ public class FileValidator {
 
         if (!configuration.getAllowedContentTypes()
                 .contains(detectedContentType)) {
-            throw new StorageException(
-                    "Unsupported file type: " + detectedContentType
-            );
+            throw new FileValidationException("Unsupported file type: " + detectedContentType);
         }
 
         return new ValidatedFile(
@@ -42,23 +41,23 @@ public class FileValidator {
 
     private void validateBasicProperties(MultipartFile file) {
         if (file == null) {
-            throw new StorageException("File is required");
+            throw new FileValidationException("File is required");
         }
 
         if (file.isEmpty()) {
-            throw new StorageException("File cannot be empty");
+            throw new FileValidationException("File cannot be empty");
         }
 
         String originalFilename = file.getOriginalFilename();
 
         if (originalFilename == null || originalFilename.isBlank()) {
-            throw new StorageException("File name is missing");
+            throw new FileValidationException("File name is missing");
         }
 
         String cleanFilename = StringUtils.cleanPath(originalFilename);
 
         if (cleanFilename.contains("..")) {
-            throw new StorageException("Invalid file name");
+            throw new FileValidationException("Invalid file name");
         }
     }
 
@@ -69,10 +68,7 @@ public class FileValidator {
                     file.getOriginalFilename()
             );
         } catch (IOException exception) {
-            throw new StorageException(
-                    "Could not inspect uploaded file",
-                    exception
-            );
+            throw new FileValidationException("Could not inspect uploaded file");
         }
     }
 
@@ -82,10 +78,8 @@ public class FileValidator {
                     .forName(contentType)
                     .getExtension();
         } catch (MimeTypeException exception) {
-            throw new StorageException(
-                    "Could not determine extension for file type: "
-                            + contentType,
-                    exception
+            throw new FileValidationException(
+                    "Could not determine extension for file type: " + contentType
             );
         }
     }

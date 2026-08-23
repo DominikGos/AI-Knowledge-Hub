@@ -3,6 +3,7 @@ package com.knowledgevault.storage.services.impl;
 import com.knowledgevault.storage.configs.StorageConfiguration;
 import com.knowledgevault.storage.entities.ProcessingStatus;
 import com.knowledgevault.storage.entities.StoredFile;
+import com.knowledgevault.storage.exceptions.FileNotFoundException;
 import com.knowledgevault.storage.exceptions.StorageException;
 import com.knowledgevault.storage.repositories.FileRepository;
 import com.knowledgevault.storage.services.StorageService;
@@ -75,7 +76,9 @@ public class LocalStorageService implements StorageService {
     public StoredFile delete(String storageKey) {
         StoredFile fileEntity = fileRepository
                 .findByStorageKey(storageKey)
-                .orElseThrow(() -> new NullPointerException("File not found"));
+                .orElseThrow(() -> new FileNotFoundException("File not found"));
+
+        deletePhysicalFile(fileEntity);
 
         fileRepository.delete(fileEntity);
 
@@ -118,10 +121,7 @@ public class LocalStorageService implements StorageService {
 
             return fileEntity;
         } catch (IOException exception) {
-            throw new StorageException(
-                    "Could not store file: " + file.getOriginalFilename(),
-                    exception
-            );
+            throw new StorageException("Could not store file: " + file.getOriginalFilename());
         }
     }
 
@@ -131,22 +131,19 @@ public class LocalStorageService implements StorageService {
         try {
             Files.deleteIfExists(path);
         } catch (IOException e) {
-            throw new StorageException("Could not delete file: " + file.getStorageKey(), e);
+            throw new StorageException("Could not delete file: " + file.getStorageKey());
         }
     }
 
     private void validateFileCollection(List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
-            throw new StorageException(
-                    "At least one file must be provided"
-            );
+            throw new StorageException("At least one file must be provided");
         }
 
         if (files.size()
                 > configuration.getMaxFilesPerRequest()) {
             throw new StorageException(
-                    "Too many files. Maximum allowed: "
-                            + configuration.getMaxFilesPerRequest()
+                    "Too many files. Maximum allowed: " + configuration.getMaxFilesPerRequest()
             );
         }
     }
@@ -157,9 +154,7 @@ public class LocalStorageService implements StorageService {
                 .normalize();
 
         if (!targetLocation.startsWith(rootLocation)) {
-            throw new StorageException(
-                    "Invalid storage path"
-            );
+            throw new StorageException("Invalid storage path");
         }
 
         return targetLocation;
@@ -169,11 +164,7 @@ public class LocalStorageService implements StorageService {
         try {
             Files.createDirectories(rootLocation);
         } catch (IOException exception) {
-            throw new StorageException(
-                    "Could not create storage directory: "
-                            + rootLocation,
-                    exception
-            );
+            throw new StorageException("Could not create storage directory: " + rootLocation);
         }
     }
 
