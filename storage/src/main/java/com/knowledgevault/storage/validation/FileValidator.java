@@ -1,6 +1,7 @@
 package com.knowledgevault.storage.validation;
 
 import com.knowledgevault.storage.configs.StorageConfiguration;
+import com.knowledgevault.storage.entities.StoredFile;
 import com.knowledgevault.storage.exceptions.FileValidationException;
 import com.knowledgevault.storage.exceptions.StorageException;
 import org.apache.tika.Tika;
@@ -12,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 @Component
 public class FileValidator {
@@ -80,6 +82,37 @@ public class FileValidator {
         } catch (MimeTypeException exception) {
             throw new FileValidationException(
                     "Could not determine extension for file type: " + contentType
+            );
+        }
+    }
+
+    public void validateMultipartFileCollection(List<MultipartFile> files) {
+        if (files == null || files.isEmpty()) {
+            throw new FileValidationException("At least one file must be provided");
+        }
+
+        if (files.size()
+                > configuration.getMaxFilesPerRequest()) {
+            throw new FileValidationException(
+                    "Too many files. Maximum allowed: " + configuration.getMaxFilesPerRequest()
+            );
+        }
+
+        files.forEach(this::validate);
+    }
+
+    public void validateStorageKeysCollection(List<String> storageKeys) {
+        if (storageKeys == null || storageKeys.isEmpty()) {
+            throw new FileValidationException(
+                    "At least one storage key must be provided"
+            );
+        }
+
+        if (storageKeys.stream().anyMatch(
+                key -> key == null || key.isBlank()
+        )) {
+            throw new FileValidationException(
+                    "Storage keys cannot be empty"
             );
         }
     }

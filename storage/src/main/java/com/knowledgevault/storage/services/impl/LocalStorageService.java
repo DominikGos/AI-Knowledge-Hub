@@ -20,10 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Profile("local")
 @Service
@@ -54,22 +51,27 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public StoredFile store(MultipartFile file) {
-        fileValidator.validate(file);
+        FileValidator.ValidatedFile validatedFile = fileValidator.validate(file);
 
-        return storeValidatedFile(file);
+        return storePhysicalValidatedFile(file, validatedFile);
     }
 
     @Override
     public List<StoredFile> storeAll(List<MultipartFile> files) {
-        validateFileCollection(files);
+        fileValidator.validateMultipartFileCollection(files);
 
-        files.forEach(fileValidator::validate);
+        List<StoredFile> storedFiles = new ArrayList<>();
 
-         List<StoredFile> validatedFiles = files.stream()
-                .map(this::storeValidatedFile)
-                .toList();
+        for (MultipartFile file : files) {
 
-         return fileRepository.saveAll(validatedFiles);
+            FileValidator.ValidatedFile validatedFile = fileValidator.validate(file);
+
+            StoredFile storedFile = storePhysicalValidatedFile(file, validatedFile);
+
+            storedFiles.add(storedFile);
+        }
+
+        return fileRepository.saveAll(storedFiles);
     }
 
     @Override
@@ -87,7 +89,13 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public List<StoredFile> deleteAll(List<String> storageKeys) {
+        fileValidator.validateStorageKeysCollection(storageKeys);
+
         List<StoredFile> fileEntities = fileRepository.findAllByStorageKeyIn(storageKeys);
+
+        if(fileEntities == null || fileEntities.isEmpty()) {
+            throw new FileNotFoundException("Couldn't find any of the files");
+        }
 
         fileEntities.forEach(this::deletePhysicalFile);
 
@@ -96,9 +104,8 @@ public class LocalStorageService implements StorageService {
         return fileEntities;
     }
 
-    private StoredFile storeValidatedFile(MultipartFile file) {
-        String extension = extractExtension(file.getOriginalFilename());
-        String storageKey = UUID.randomUUID() + extension;
+    private StoredFile storePhysicalValidatedFile(MultipartFile file, FileValidator.ValidatedFile validatedFile) {
+        String storageKey = UUID.randomUUID() + validatedFile.extension();
         Path targetLocation = resolveStoragePath(storageKey);
         StoredFile fileEntity;
 
@@ -135,19 +142,6 @@ public class LocalStorageService implements StorageService {
         }
     }
 
-    private void validateFileCollection(List<MultipartFile> files) {
-        if (files == null || files.isEmpty()) {
-            throw new StorageException("At least one file must be provided");
-        }
-
-        if (files.size()
-                > configuration.getMaxFilesPerRequest()) {
-            throw new StorageException(
-                    "Too many files. Maximum allowed: " + configuration.getMaxFilesPerRequest()
-            );
-        }
-    }
-
     private Path resolveStoragePath(String storageKey) {
         Path targetLocation = rootLocation
                 .resolve(storageKey)
@@ -166,27 +160,5 @@ public class LocalStorageService implements StorageService {
         } catch (IOException exception) {
             throw new StorageException("Could not create storage directory: " + rootLocation);
         }
-    }
-
-    private String extractExtension(String originalFilename) {
-        String cleanFilename =
-                StringUtils.cleanPath(originalFilename);
-
-        int extensionIndex =
-                cleanFilename.lastIndexOf('.');
-
-        if (extensionIndex < 0
-                || extensionIndex
-                == cleanFilename.length() - 1) {
-            return "";
-        }
-
-        String extension = cleanFilename
-                .substring(extensionIndex)
-                .toLowerCase(Locale.ROOT);
-
-        return extension.length() <= 20
-                ? extension
-                : "";
     }
 }
