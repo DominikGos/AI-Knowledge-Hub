@@ -1,10 +1,14 @@
 package com.knowledgevault.storage.dto;
 
+import com.knowledgevault.storage.entities.ProcessingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -13,6 +17,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UploadedFileResponse {
 
+    private UUID id;
+
     private String originalFilename;
 
     private String storageKey;
@@ -20,4 +26,10 @@ public class UploadedFileResponse {
     private String contentType;
 
     private long size;
+
+    private ProcessingStatus processingStatus;
+
+    private Instant createdAt;
+
+    private Instant updatedAt;
 }
