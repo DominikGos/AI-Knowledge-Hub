@@ -27,7 +27,7 @@ public class StorageController {
 
     @PostMapping("/upload")
     public List<UploadedFileResponse> upload(
-            @RequestParam("files") List<MultipartFile> files
+            @RequestParam(value = "files", required = false) List<MultipartFile> files
     ) {
         return storageService
                 .storeAll(files)
