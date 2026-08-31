@@ -13,4 +13,14 @@ public class GlobalExceptionHandler {
     public StorageServiceErrorResponse handleFileNotFound(FileNotFoundException e) {
         return new StorageServiceErrorResponse(e.getMessage(), Instant.now());
     }
+
+    @ExceptionHandler(FileValidationException.class)
+    public StorageServiceErrorResponse handleFileValidation(FileValidationException e) {
+        return new StorageServiceErrorResponse(e.getMessage(), Instant.now());
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public StorageServiceErrorResponse handleStorageException(StorageException e) {
+        return new StorageServiceErrorResponse(e.getMessage(), Instant.now());
+    }
 }
