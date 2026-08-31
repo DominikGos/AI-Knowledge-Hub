@@ -28,19 +28,15 @@ public class LocalStorageService implements StorageService {
 
     private final Path rootLocation;
     private final FileValidator fileValidator;
-    private final StorageConfiguration configuration;
     private final FileRepository fileRepository;
-    private final StorageConfiguration storageConfiguration;
 
     public LocalStorageService(
             StorageConfiguration configuration,
             FileValidator fileValidator,
             FileRepository fileRepository,
             StorageConfiguration storageConfiguration) {
-        this.configuration = configuration;
         this.fileValidator = fileValidator;
         this.fileRepository = fileRepository;
-        this.storageConfiguration = storageConfiguration;
 
         this.rootLocation = Path.of(configuration.getLocation())
                 .toAbsolutePath()
