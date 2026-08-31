@@ -1,7 +1,9 @@
 package com.knowledgevault.storage.exceptions;
 
 import com.knowledgevault.storage.dto.StorageServiceErrorResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
@@ -21,6 +23,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(StorageException.class)
     public StorageServiceErrorResponse handleStorageException(StorageException e) {
+        return new StorageServiceErrorResponse(e.getMessage(), Instant.now());
+    }
+
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public StorageServiceErrorResponse handleUnexpectedException(Exception e) {
         return new StorageServiceErrorResponse(e.getMessage(), Instant.now());
     }
 }
