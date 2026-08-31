@@ -120,7 +120,7 @@ public class LocalStorageService implements StorageService {
                     .processingStatus(ProcessingStatus.PENDING)
                     .originalFilename(file.getOriginalFilename())
                     .storageKey(storageKey)
-                    .contentType(file.getContentType())
+                    .contentType(validatedFile.contentType())
                     .size(file.getSize())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
