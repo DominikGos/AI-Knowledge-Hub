@@ -1,11 +1,11 @@
 package com.knowledgevault.api_gateway;
 
-import com.knowledgevault.api_gateway.configs.JwtConfiguration;
+import com.knowledgevault.api_gateway.configs.JwtConfigurationProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-@EnableConfigurationProperties(JwtConfiguration.class)
+@EnableConfigurationProperties(JwtConfigurationProperties.class)
 @SpringBootApplication
 public class ApiGatewayApplication {
 

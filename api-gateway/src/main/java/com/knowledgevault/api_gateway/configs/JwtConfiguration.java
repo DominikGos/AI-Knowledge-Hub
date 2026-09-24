@@ -1,15 +1,29 @@
 package com.knowledgevault.api_gateway.configs;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import javax.crypto.SecretKey;
 
-@Getter
-@Setter
-@ConfigurationProperties(prefix = "jwt")
+@Configuration
 public class JwtConfiguration {
+    private final JwtConfigurationProperties properties;
 
-    private String secretKey;
+    JwtConfiguration(JwtConfigurationProperties properties) {
+        this.properties = properties;
+    }
 
-    private long expirationTime;
+    @Bean
+    ReactiveJwtDecoder jwtDecoder() {
+        byte[] keyBytes = Decoders.BASE64.decode(properties.getSecretKey());
+
+        SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+
+        return NimbusReactiveJwtDecoder
+                .withSecretKey(key)
+                .build();
+    }
 }
