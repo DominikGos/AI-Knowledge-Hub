@@ -2,6 +2,7 @@ package com.knowledgevault.api_gateway.services;
 
 import com.knowledgevault.api_gateway.dto.RegisterRequest;
 import com.knowledgevault.api_gateway.entities.User;
+import com.knowledgevault.api_gateway.exceptions.EmailAlreadyRegisteredException;
 import com.knowledgevault.api_gateway.repositories.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -50,7 +51,7 @@ public class AuthService {
 
     public void register(RegisterRequest request) {
         if(userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("User with given email exists");
+            throw new EmailAlreadyRegisteredException();
         }
 
         User user = User.builder()
