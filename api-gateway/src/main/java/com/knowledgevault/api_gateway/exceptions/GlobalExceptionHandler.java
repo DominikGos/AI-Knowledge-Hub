@@ -17,10 +17,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(
-                        new AuthErrorResponse(
-                                e.getMessage(),
-                                Instant.now()
-                        )
+                        new AuthErrorResponse(e.getMessage())
+                );
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<AuthErrorResponse> handleInvalidCredentials(InvalidCredentialsException e) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(
+                        new AuthErrorResponse(e.getMessage())
                 );
     }
 }

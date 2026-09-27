@@ -9,10 +9,14 @@ import java.time.Instant;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
 public class AuthErrorResponse {
 
     private String message;
     private Instant timestamp;
+
+    public AuthErrorResponse(String message) {
+        this.message = message;
+        this.timestamp = Instant.now();
+    }
 }
