@@ -1,5 +1,7 @@
 package com.knowledgevault.api_gateway.controllers;
 
+import com.knowledgevault.api_gateway.dto.LoginRequest;
+import com.knowledgevault.api_gateway.dto.LoginResponse;
 import com.knowledgevault.api_gateway.dto.RegisterRequest;
 import com.knowledgevault.api_gateway.dto.RegisterResponse;
 import com.knowledgevault.api_gateway.services.AuthService;
@@ -18,8 +20,14 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestParam String email, @RequestParam String password) {
-        return authService.login(email, password);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        String token = authService.login(request.getEmail(), request.getPassword());
+
+        return ResponseEntity
+                .ok()
+                .body(
+                        new LoginResponse("Login successfully", token)
+                );
     }
 
     @PostMapping("/register")
