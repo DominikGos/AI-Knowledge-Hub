@@ -1,7 +1,9 @@
 package com.knowledgevault.api_gateway.controllers;
 
 import com.knowledgevault.api_gateway.dto.RegisterRequest;
+import com.knowledgevault.api_gateway.dto.RegisterResponse;
 import com.knowledgevault.api_gateway.services.AuthService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RequestMapping("/auth")
@@ -20,9 +22,13 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
         authService.register(request);
 
-        return "success";
+        return ResponseEntity
+                .ok()
+                .body(
+                        new RegisterResponse("Register successfully, you can now login")
+                );
     }
 }
