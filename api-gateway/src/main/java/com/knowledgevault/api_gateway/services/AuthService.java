@@ -3,6 +3,7 @@ package com.knowledgevault.api_gateway.services;
 import com.knowledgevault.api_gateway.dto.RegisterRequest;
 import com.knowledgevault.api_gateway.entities.User;
 import com.knowledgevault.api_gateway.exceptions.EmailAlreadyRegisteredException;
+import com.knowledgevault.api_gateway.exceptions.InvalidCredentialsException;
 import com.knowledgevault.api_gateway.repositories.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -40,11 +41,11 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(email, password)
             );
         } catch (AuthenticationException e) {
-            return "User with login " + email + " unauthorized";
+            throw new InvalidCredentialsException();
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User with email: " + email + "does not exist"));
+                .orElseThrow(() -> new InvalidCredentialsException("User with email: " + email + " does not exist"));
 
         return jwtService.generateToken(user);
     }
